@@ -14,7 +14,7 @@
         input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
         button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; margin-top: 15px; cursor: pointer; }
         button:hover { background: #0056b3; }
-        pre { background: #333; color: #fff; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
+        pre { background: #333; color: #fff; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -54,66 +54,75 @@
 
         def berechne(event):
             try:
-                is_grat = document.querySelector("#typ_wahl").value == "1"
-                alpha_h = float(document.querySelector("#alpha_h").value)
-                alpha_n = float(document.querySelector("#alpha_n").value)
-                g = float(document.querySelector("#g").value)
-                w_ecke = float(document.querySelector("#w_ecke").value)
-            except Exception:
-                document.querySelector("#output").innerText = "⚠️ Bitte alle Felder korrekt ausfüllen!"
+                is_grat = document.getElementById("typ_wahl").value == "1"
+                alpha_h = float(document.getElementById("alpha_h").value)
+                alpha_n = float(document.getElementById("alpha_n").value)
+                g = float(document.getElementById("g").value)
+                w_ecke = float(document.getElementById("w_ecke").value)
+            except Exception as e:
+                document.getElementById("output").innerText = f"⚠️ Bitte alle Felder korrekt ausfüllen!"
                 return
 
             alpha_h_rad, alpha_n_rad = math.radians(alpha_h), math.radians(alpha_n)
             w_ecke_rad = math.radians(w_ecke)
 
-            # Grundwinkel
+            # 1. Grundwinkel (phi)
             zaehler_phi = math.sin(w_ecke_rad)
             nenner_phi = (math.tan(alpha_h_rad) / math.tan(alpha_n_rad)) + math.cos(w_ecke_rad)
             phi_h_rad = math.atan2(zaehler_phi, nenner_phi)
             phi_n_rad = w_ecke_rad - phi_h_rad
 
-            # Raum- und Maschinenwinkel
+            # 2. Raumwinkel (epsilon) & Maschinenwinkel (mw)
             epsilon_rad = math.atan(math.tan(alpha_h_rad) * math.sin(phi_h_rad))
             mw_h_rad = math.atan(math.sin(epsilon_rad) / math.tan(phi_h_rad))
             mw_n_rad = math.atan(math.sin(epsilon_rad) / math.tan(phi_n_rad))
 
-            # Wahrer Schnittwinkel
+            # 3. Wahrer Schnittwinkel zur Traufe auf der Dachhaut
             wahr_hd = math.degrees(math.atan(1.0 / (math.cos(alpha_h_rad) * math.tan(phi_h_rad)))) if phi_h_rad != 0 else 0
             wahr_nd = math.degrees(math.atan(1.0 / (math.cos(alpha_n_rad) * math.tan(phi_n_rad)))) if phi_n_rad != 0 else 0
 
             def berechne_risse(d_hd, d_nd):
                 h_hd = - d_hd * (math.tan(alpha_h_rad) * math.cos(phi_h_rad) / math.sin(phi_h_rad) if phi_h_rad != 0 else 0)
                 h_nd = - d_nd * (math.tan(alpha_n_rad) * math.cos(phi_n_rad) / math.sin(phi_n_rad) if phi_n_rad != 0 else 0)
-                h_max = max(h_hd, 0.0, h_nd)
-                return h_max - h_hd, h_max, h_max - h_nd
+                h_linie = 0.0
+                h_max = max(h_hd, h_linie, h_nd)
+                return h_max - h_hd, h_max - h_linie, h_max - h_nd
 
             tan_h, tan_n = math.tan(mw_h_rad), math.tan(mw_n_rad)
             lbl_lin = "Gratlinie" if is_grat else "Kehllinie"
 
+            # OPTION 1
             opt1_text = ""
             if (tan_h + tan_n) != 0:
                 abstand_hd_opt1 = g * (tan_n / (tan_h + tan_n))
-                if 0 <= abstand_hd_opt1 <= g:
-                    p_hd1, p_lin1, p_nd1 = berechne_risse(abstand_hd_opt1, g - abstand_hd_opt1)
-                    opt1_text = f"\n[OPTION 1] " + ("Kantenbündig" if is_grat else "Flankenrisse bei 0") + \
-                                f"\nLage {lbl_lin}: {abstand_hd_opt1:.2f} cm ab HD" \
-                                f"\n-> Riss HD: {p_hd1:.2f} cm | {lbl_lin}: {p_lin1:.2f} cm | ND: {p_nd1:.2f} cm\n"
+                opt1_aktiv = (0 <= abstand_hd_opt1 <= g)
+            else:
+                opt1_aktiv = False
 
+            if opt1_aktiv:
+                p_hd1, p_lin1, p_nd1 = berechne_risse(abstand_hd_opt1, g - abstand_hd_opt1)
+                opt1_text = f"\n[OPTION 1] " + ("Kantenbündig" if is_grat else "Flankenrisse bei 0") + \
+                            f"\nLage {lbl_lin}: {abstand_hd_opt1:.2f} cm ab HD" \
+                            f"\n-> Riss HD-Flanke: {p_hd1:.2f} cm | {lbl_lin}: {p_lin1:.2f} cm | ND-Flanke: {p_nd1:.2f} cm\n"
+
+            # OPTION 2
             p_hd2, p_lin2, p_nd2 = berechne_risse(g/2.0, g/2.0)
 
+            # OPTION 3
             cos_h, cos_n = abs(math.cos(mw_h_rad)), abs(math.cos(mw_n_rad))
             abstand_hd_opt3 = g * (cos_h / (cos_h + cos_n))
             p_hd3, p_lin3, p_nd3 = berechne_risse(abstand_hd_opt3, g - abstand_hd_opt3)
 
+            # Ergebnistext bauen
             res = f"Raumwinkel: {abs(math.degrees(epsilon_rad)):.2f}°\n" \
                   f"Grundwinkel: HD = {math.degrees(phi_h_rad):.2f}° | ND = {math.degrees(phi_n_rad):.2f}°\n" \
                   f"Maschinenwinkel: HD = {math.degrees(mw_h_rad):.2f}° | ND = {math.degrees(mw_n_rad):.2f}°\n" \
                   f"Schnittwinkel Dachhaut: HD = {abs(wahr_hd):.2f}° | ND = {abs(wahr_nd):.2f}°\n"
                   
             if math.degrees(phi_h_rad) > 90.0 or math.degrees(phi_n_rad) > 90.0:
-                res += "⚠️ Sonderfall: Winkel > 90°!\n"
+                res += "⚠️ Sonderfall: Winkel > 90°! (Konterprofil beachten)\n"
                 
-            res += f"\nRissmaße ab Holzoberkante:\n" \
+            res += f"\nAlle Rissmaße gemessen ab Holzoberkante:\n" \
                    f"========================================="
                    
             if opt1_text:
@@ -121,16 +130,16 @@
                 
             res += f"\n[OPTION 2] Mitte Holz\n" \
                    f"Lage {lbl_lin}: {g/2.0:.2f} cm ab HD\n" \
-                   f"-> Riss HD: {p_hd2:.2f} cm | {lbl_lin}: {p_lin2:.2f} cm | ND: {p_nd2:.2f} cm\n"
+                   f"-> Riss HD-Flanke: {p_hd2:.2f} cm | {lbl_lin}: {p_lin2:.2f} cm | ND-Flanke: {p_nd2:.2f} cm\n"
                    
-            res += f"\n[OPTION 3] " + ("Gleiche Breite" if is_grat else "Gleicher Schifter-Versatz") + \
+            res += f"\n[OPTION 3] " + ("Gleiche Abgratungsbreite" if is_grat else "Gleicher Schifter-Versatz") + \
                    f"\nLage {lbl_lin}: {abstand_hd_opt3:.2f} cm ab HD\n" \
-                   f"-> Riss HD: {p_hd3:.2f} cm | {lbl_lin}: {p_lin3:.2f} cm | ND: {p_nd3:.2f} cm\n"
+                   f"-> Riss HD-Flanke: {p_hd3:.2f} cm | {lbl_lin}: {p_lin3:.2f} cm | ND-Flanke: {p_nd3:.2f} cm"
                    
             if not is_grat:
-                res += f"   (Kehle um {p_lin3:.2f} cm tiefer/hoch setzen)\n"
+                res += f"\n   (Kehle um {p_lin3:.2f} cm tiefer/hoch setzen)"
 
-            document.querySelector("#output").innerText = res
+            document.getElementById("output").innerText = res
     </script>
 </body>
 </html>
