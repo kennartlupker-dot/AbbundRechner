@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abbund-Rechner Profi</title>
-    <!-- Stabile, moderne PyScript-Zentrale -->
+    <!-- Offizielle PyScript-Zentrale -->
     <link rel="stylesheet" href="https://pyscript.net" />
     <script type="module" src="https://pyscript.net"></script>
     <style>
@@ -46,26 +46,22 @@
 
     <div class="card">
         <h3>Ergebnisse (ab Holzoberkante):</h3>
-        <pre id="output">System lädt... Bitte kurz warten, bis dieser Text zu 'Bereit' wechselt.</pre>
+        <pre id="output">✅ System bereit! Daten eingeben und BERECHNEN klicken.</pre>
     </div>
 
-    <!-- Hier steckt die korrigierte Schreibweise für den Browser -->
     <script type="py">
 import math
 from pyscript import document
 
-# Ändert den Text sofort nach dem Laden im Browser
-document.getElementById("output").innerText = "✅ System startbereit! Daten eingeben und BERECHNEN klicken."
-
 def berechne(event):
     try:
-        is_grat = document.getElementById("typ_wahl").value == "1"
-        alpha_h = float(document.getElementById("alpha_h").value)
-        alpha_n = float(document.getElementById("alpha_n").value)
-        g = float(document.getElementById("g").value)
-        w_ecke = float(document.getElementById("w_ecke").value)
+        is_grat = document.querySelector("#typ_wahl").value == "1"
+        alpha_h = float(document.querySelector("#alpha_h").value)
+        alpha_n = float(document.querySelector("#alpha_n").value)
+        g = float(document.querySelector("#g").value)
+        w_ecke = float(document.querySelector("#w_ecke").value)
     except Exception:
-        document.getElementById("output").innerText = "⚠️ Bitte alle Felder korrekt ausfüllen!"
+        document.querySelector("#output").innerText = "⚠️ Bitte alle Felder korrekt ausfüllen!"
         return
 
     alpha_h_rad, alpha_n_rad = math.radians(alpha_h), math.radians(alpha_n)
@@ -91,7 +87,7 @@ def berechne(event):
         h_nd = - d_nd * (math.tan(alpha_n_rad) * math.cos(phi_n_rad) / math.sin(phi_n_rad) if phi_n_rad != 0 else 0)
         h_linie = 0.0
         h_max = max(h_hd, h_linie, h_nd)
-        return h_max - h_hd, h_max - h_linie, h_max - d_nd * math.tan(mw_n_rad)  # Korrigiert für präzise ND-Tiefe
+        return h_max - h_hd, h_max - h_linie, h_max - h_nd
 
     tan_h, tan_n = math.tan(mw_h_rad), math.tan(mw_n_rad)
     lbl_lin = "Gratlinie" if is_grat else "Kehllinie"
@@ -144,7 +140,7 @@ def berechne(event):
     if not is_grat:
         res += f"\n   (Kehle um {p_lin3:.2f} cm tiefer/hoch setzen)"
 
-    document.getElementById("output").innerText = res
+    document.querySelector("#output").innerText = res
     </script>
 </body>
 </html>
