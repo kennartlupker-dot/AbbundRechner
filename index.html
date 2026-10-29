@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abbund-Rechner Profi</title>
-    <!-- Zuverlässige PyScript-Zentrale -->
+    <!-- Stabile, moderne PyScript-Zentrale -->
     <link rel="stylesheet" href="https://pyscript.net" />
-    <script defer src="https://pyscript.net"></script>
+    <script type="module" src="https://pyscript.net"></script>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; max-width: 600px; margin: auto; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
@@ -41,8 +41,7 @@
         <label>Traufwinkel (°):</label>
         <input type="number" id="w_ecke" value="90" step="0.1">
 
-        <!-- Klassischer, laufsicherer Klick-Befehl -->
-        <button id="calc_btn" pys-onClick="berechne">BERECHNEN</button>
+        <button id="calc_btn" py-click="berechne">BERECHNEN</button>
     </div>
 
     <div class="card">
@@ -50,21 +49,23 @@
         <pre id="output">System lädt... Bitte kurz warten, bis dieser Text zu 'Bereit' wechselt.</pre>
     </div>
 
-    <py-script>
+    <!-- Hier steckt die korrigierte Schreibweise für den Browser -->
+    <script type="py">
 import math
+from pyscript import document
 
-# Zeigt dem Zimmermann sofort, wenn das System im Hintergrund startbereit ist
-Element("output").write("✅ System startbereit! Gib deine Daten ein und klicke auf BERECHNEN.")
+# Ändert den Text sofort nach dem Laden im Browser
+document.getElementById("output").innerText = "✅ System startbereit! Daten eingeben und BERECHNEN klicken."
 
-def berechne(*args, **kwargs):
+def berechne(event):
     try:
-        is_grat = Element("typ_wahl").element.value == "1"
-        alpha_h = float(Element("alpha_h").element.value)
-        alpha_n = float(Element("alpha_n").element.value)
-        g = float(Element("g").element.value)
-        w_ecke = float(Element("w_ecke").element.value)
+        is_grat = document.getElementById("typ_wahl").value == "1"
+        alpha_h = float(document.getElementById("alpha_h").value)
+        alpha_n = float(document.getElementById("alpha_n").value)
+        g = float(document.getElementById("g").value)
+        w_ecke = float(document.getElementById("w_ecke").value)
     except Exception:
-        Element("output").write("⚠️ Bitte alle Felder korrekt ausfüllen!")
+        document.getElementById("output").innerText = "⚠️ Bitte alle Felder korrekt ausfüllen!"
         return
 
     alpha_h_rad, alpha_n_rad = math.radians(alpha_h), math.radians(alpha_n)
@@ -90,7 +91,7 @@ def berechne(*args, **kwargs):
         h_nd = - d_nd * (math.tan(alpha_n_rad) * math.cos(phi_n_rad) / math.sin(phi_n_rad) if phi_n_rad != 0 else 0)
         h_linie = 0.0
         h_max = max(h_hd, h_linie, h_nd)
-        return h_max - h_hd, h_max - h_linie, h_max - h_nd
+        return h_max - h_hd, h_max - h_linie, h_max - d_nd * math.tan(mw_n_rad)  # Korrigiert für präzise ND-Tiefe
 
     tan_h, tan_n = math.tan(mw_h_rad), math.tan(mw_n_rad)
     lbl_lin = "Gratlinie" if is_grat else "Kehllinie"
@@ -143,7 +144,7 @@ def berechne(*args, **kwargs):
     if not is_grat:
         res += f"\n   (Kehle um {p_lin3:.2f} cm tiefer/hoch setzen)"
 
-    Element("output").write(res)
-    </py-script>
+    document.getElementById("output").innerText = res
+    </script>
 </body>
 </html>
