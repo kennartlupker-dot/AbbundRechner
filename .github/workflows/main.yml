@@ -3,20 +3,36 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
-      - name: Get Buildozer
-        run: |
-          sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libgomp1
-          pip install buildozer kivy cython<3.0
-      - name: Build APK
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Buildozer dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libssl-dev cmake libffi-dev libgomp1
+            pip install --upgrade pip
+            pip install buildozer "cython<3.0" kivy
+
+      - name: Build with Buildozer
         run: |
           buildozer init
-          sed -i 's/requirements = python3,kivy/requirements = python3==3.11.9,kivy/g' buildozer.spec
-          buildozer -v android debug
+          sed -i 's/requirements = python3,kivy/requirements = python3,kivy/g' buildozer.spec
+          yes | buildozer -v android debug
+
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: AbbundApp
           path: bin/*.apk
